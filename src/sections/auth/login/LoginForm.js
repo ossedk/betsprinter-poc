@@ -1,20 +1,38 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-// @mui
+import { createClient } from '@supabase/supabase-js';
 import { Link, Stack, IconButton, InputAdornment, TextField, Checkbox } from '@mui/material';
 import { LoadingButton } from '@mui/lab';
-// components
 import Iconify from '../../../components/iconify';
-
-// ----------------------------------------------------------------------
 
 export default function LoginForm() {
   const navigate = useNavigate();
-
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleClick = () => {
-    navigate('/dashboard', { replace: true });
+  const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+  const anonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
+  const supabase = createClient(supabaseUrl, anonKey);
+
+  useEffect(() => {
+    const checkUser = () => {
+      const user = supabase.auth.getUser();
+      if (user) {
+        navigate('/dashboard');
+      }
+    };
+
+    checkUser();
+  }, [supabase, navigate]);
+
+  const handleClick = async () => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: 'troels@wecode.dk',
+      password: 'testtest',
+    });
+    if (data) {
+      navigate('/dashboard');
+    }
+    // Handle error if necessary
   };
 
   return (
