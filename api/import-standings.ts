@@ -16,7 +16,7 @@ export async function handler(event: any, context: any): Promise<HandlerResponse
     url: 'https://api-football-v1.p.rapidapi.com/v3/standings',
     params: { season: '2022', league: '61' },
     headers: {
-      'X-RapidAPI-Key': 'xgCqrmsOZjmshxnwIHl0bI4yCjKLp1aXduPjsnHlhsEBkxOZ1o',
+      'X-RapidAPI-Key': process.env.REACT_APP_RAPID_KEY,
       'X-RapidAPI-Host': 'api-football-v1.p.rapidapi.com',
     },
   };

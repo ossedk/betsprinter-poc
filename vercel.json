@@ -1,0 +1,7 @@
+{
+    "functions": {
+      "api/import-standings.ts": {
+        "runtime": "@vercel/node@2.10.0"
+      }
+    }
+}
