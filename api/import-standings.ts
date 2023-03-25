@@ -10,7 +10,16 @@ interface HandlerResponse {
   body: string;
 }
 
-export async function handler(event: any, context: any): Promise<HandlerResponse> {
+export default async function handler(event: any, context: any): Promise<HandlerResponse> {
+  const apiKey = event.headers['x-api-key'];
+
+  if (apiKey !== process.env.API_KEY) {
+    return {
+      statusCode: 403,
+      body: JSON.stringify({ message: 'Forbidden: Invalid API key' }),
+    };
+  }
+
   const options = {
     method: 'GET',
     url: 'https://api-football-v1.p.rapidapi.com/v3/standings',
