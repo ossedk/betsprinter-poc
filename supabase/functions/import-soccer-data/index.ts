@@ -1,25 +1,114 @@
-// Follow this setup guide to integrate the Deno language server with your editor:
-// https://deno.land/manual/getting_started/setup_your_environment
-// This enables autocomplete, go to definition, etc.
+import axios from 'axios';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+const supabaseUrl: string = process.env.REACT_APP_SUPABASE_URL ?? 'your_default_value_here';
+const anonKey: string = process.env.REACT_APP_SUPABASE_ANON_KEY ?? 'your_default_value_here';
+const supabase: SupabaseClient = createClient(supabaseUrl, anonKey);
 
-console.log("Hello from Functions!")
+interface HandlerResponse {
+  statusCode: number;
+  body: string;
+}
 
-serve(async (req) => {
-  const { name } = await req.json()
-  const data = {
-    message: `Hello ${name}!`,
-  }
+export async function handler(event: any, context: any): Promise<HandlerResponse> {
+  const options = {
+    method: 'GET',
+    url: 'https://api-football-v1.p.rapidapi.com/v3/standings',
+    params: { season: '2022', league: '61' },
+    headers: {
+      'X-RapidAPI-Key': 'xgCqrmsOZjmshxnwIHl0bI4yCjKLp1aXduPjsnHlhsEBkxOZ1o',
+      'X-RapidAPI-Host': 'api-football-v1.p.rapidapi.com',
+    },
+  };
 
-  return new Response(
-    JSON.stringify(data),
-    { headers: { "Content-Type": "application/json" } },
-  )
-})
+  try {
+    const response = await axios(options);
+    const standingsData = response.data.response;
+  
+    for (const leagueData of standingsData) {
+      const league = leagueData.league;
+  
+      // Insert the league data if it doesn't exist in the leagues table
+      const { data: existingLeague } = await supabase
+        .from('leagues')
+        .select('*')
+        .eq('id', league.id)
+        .single();
+  
+      if (!existingLeague) {
+        await supabase.from('leagues').insert([{
+          id: league.id,
+          name: league.name,
+          country: league.country,
+          logo: league.logo,
+          flag: league.flag,
+          season: league.season
+        }]);
+      }
+  
+      for (const standingGroup of league.standings) {
+        for (const standing of standingGroup) {
+          const team = standing.team;
+  
+          // Insert the team data if it doesn't exist in the teams table
+          const { data: existingTeam } = await supabase
+            .from('teams')
+            .select('*')
+            .eq('id', team.id)
+            .single();
+  
+          if (!existingTeam) {
+            await supabase.from('teams').insert([{
+              id: team.id,
+              name: team.name,
+              logo: team.logo
+            }]);
+          }
+  
+          // Insert the standing data into the standings table
+          await supabase.from('standings').insert([{
+            league_id: league.id,
+            team_id: team.id,
+            rank: standing.rank,
+            points: standing.points,
+            goals_diff: standing.goalsDiff,
+            form: standing.form,
+            status: standing.status,
+            description: standing.description,
+            all_played: standing.all.played,
+            all_win: standing.all.win,
+            all_draw: standing.all.draw,
+            all_lose: standing.all.lose,
+            all_goals_for: standing.all.goals.for,
+            all_goals_against: standing.all.goals.against,
+            home_played: standing.home.played,
+            home_win: standing.home.win,
+            home_draw: standing.home.draw,
+            home_lose: standing.home.lose,
+            home_goals_for: standing.home.goals.for,
+            home_goals_against: standing.home.goals.against,
+            away_played: standing.away.played,
+            away_win: standing.away.win,
+            away_draw: standing.away.draw,
+            away_lose: standing.away.lose,
+            away_goals_for: standing.away.goals.for,
+            away_goals_against: standing.away.goals.against,
+            last_update: standing.update
+          }]);
+        }
+      }
+    }
+  
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ message: 'Data imported successfully' }),
+    };
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ message: 'Error fetching data' }),
+    };
+  }  
+}
 
-// To invoke:
-// curl -i --location --request POST 'http://localhost:54321/functions/v1/' \
-//   --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
-//   --header 'Content-Type: application/json' \
-//   --data '{"name":"Functions"}'
