@@ -12,6 +12,15 @@ interface HandlerResponse {
 
 export default async function handler(event: any, context: any): Promise<HandlerResponse> {
   const apiKey = event.headers['x-api-key'];
+  const host = event.headers.host;
+
+  // If the request is not coming from the server, return a 403 error
+  if (!host.startsWith('localhost') && !host.endsWith('vercel.app')) {
+    return {
+      statusCode: 403,
+      body: JSON.stringify({ message: 'Forbidden: Access denied' }),
+    };
+  }
 
   if (apiKey !== process.env.API_KEY) {
     return {
@@ -39,13 +48,13 @@ export default async function handler(event: any, context: any): Promise<Handler
   
       // Insert the league data if it doesn't exist in the leagues table
       const { data: existingLeague } = await supabase
-        .from('leagues')
+        .from('soccer_leagues')
         .select('*')
         .eq('id', league.id)
         .single();
   
       if (!existingLeague) {
-        await supabase.from('leagues').insert([{
+        await supabase.from('soccer_leagues').insert([{
           id: league.id,
           name: league.name,
           country: league.country,
@@ -61,13 +70,13 @@ export default async function handler(event: any, context: any): Promise<Handler
   
           // Insert the team data if it doesn't exist in the teams table
           const { data: existingTeam } = await supabase
-            .from('teams')
+            .from('soccer_teams')
             .select('*')
             .eq('id', team.id)
             .single();
   
           if (!existingTeam) {
-            await supabase.from('teams').insert([{
+            await supabase.from('soccer_teams').insert([{
               id: team.id,
               name: team.name,
               logo: team.logo
@@ -75,7 +84,7 @@ export default async function handler(event: any, context: any): Promise<Handler
           }
   
           // Insert the standing data into the standings table
-          await supabase.from('standings').insert([{
+          await supabase.from('soccer_standings').insert([{
             league_id: league.id,
             team_id: team.id,
             rank: standing.rank,

@@ -1,5 +1,5 @@
 -- Create the leagues table
-CREATE TABLE leagues (
+CREATE TABLE soccer_leagues (
   id INTEGER PRIMARY KEY,
   name VARCHAR(255),
   country VARCHAR(255),
@@ -9,17 +9,17 @@ CREATE TABLE leagues (
 );
 
 -- Create the teams table
-CREATE TABLE teams (
+CREATE TABLE soccer_teams (
   id INTEGER PRIMARY KEY,
   name VARCHAR(255),
   logo VARCHAR(255)
 );
 
 -- Create the standings table
-CREATE TABLE standings (
+CREATE TABLE soccer_standings (
   id SERIAL PRIMARY KEY,
-  league_id INTEGER REFERENCES leagues(id),
-  team_id INTEGER REFERENCES teams(id),
+  league_id INTEGER REFERENCES soccer_leagues(id),
+  team_id INTEGER REFERENCES soccer_teams(id),
   rank INTEGER,
   points INTEGER,
   goals_diff INTEGER,
