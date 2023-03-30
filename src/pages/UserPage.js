@@ -1,7 +1,6 @@
 import { Helmet } from 'react-helmet-async';
 import { filter } from 'lodash';
-import { sentenceCase } from 'change-case';
-import { useState } from 'react';
+import {  useState, useEffect } from 'react';
 // @mui
 import {
   Card,
@@ -9,37 +8,34 @@ import {
   Stack,
   Paper,
   Avatar,
-  Button,
-  Popover,
-  Checkbox,
   TableRow,
-  MenuItem,
   TableBody,
   TableCell,
   Container,
   Typography,
-  IconButton,
   TableContainer,
   TablePagination,
 } from '@mui/material';
 // components
-import Label from '../components/label';
-import Iconify from '../components/iconify';
 import Scrollbar from '../components/scrollbar';
 // sections
 import { UserListHead, UserListToolbar } from '../sections/@dashboard/user';
 // mock
 import USERLIST from '../_mock/user';
+import { fetchSoccerStandings } from '../queries/SoccerStandings';
 
 // ----------------------------------------------------------------------
 
 const TABLE_HEAD = [
-  { id: 'name', label: 'Name', alignRight: false },
-  { id: 'company', label: 'Company', alignRight: false },
-  { id: 'role', label: 'Role', alignRight: false },
-  { id: 'isVerified', label: 'Verified', alignRight: false },
-  { id: 'status', label: 'Status', alignRight: false },
-  { id: '' },
+  { id: 'rank', label: 'Rank', alignRight: false },
+  { id: 'all_played', label: 'Played', alignRight: false },
+  { id: 'all_win', label: 'Win', alignRight: false },
+  { id: 'all_draw', label: 'Draw', alignRight: false },
+  { id: 'all_lose', label: 'Lose', alignRight: false },
+  { id: 'all_goals_for', label: 'GF', alignRight: false },
+  { id: 'all_goals_against', label: 'GA', alignRight: false },
+  { id: 'goals_diff', label: 'GD', alignRight: false },
+  { id: 'points', label: 'Points', alignRight: false },
 ];
 
 // ----------------------------------------------------------------------
@@ -88,13 +84,17 @@ export default function UserPage() {
 
   const [rowsPerPage, setRowsPerPage] = useState(5);
 
-  const handleOpenMenu = (event) => {
-    setOpen(event.currentTarget);
-  };
+  const [standings, setStandings] = useState([]);
 
-  const handleCloseMenu = () => {
-    setOpen(null);
-  };
+  useEffect(() => {
+    async function loadStandings() {
+      const fetchedStandings = await fetchSoccerStandings();
+      if (fetchedStandings) {
+        setStandings(fetchedStandings);
+      }
+    }
+    loadStandings();
+  }, []);
 
   const handleRequestSort = (event, property) => {
     const isAsc = orderBy === property && order === 'asc';
@@ -109,21 +109,6 @@ export default function UserPage() {
       return;
     }
     setSelected([]);
-  };
-
-  const handleClick = (event, name) => {
-    const selectedIndex = selected.indexOf(name);
-    let newSelected = [];
-    if (selectedIndex === -1) {
-      newSelected = newSelected.concat(selected, name);
-    } else if (selectedIndex === 0) {
-      newSelected = newSelected.concat(selected.slice(1));
-    } else if (selectedIndex === selected.length - 1) {
-      newSelected = newSelected.concat(selected.slice(0, -1));
-    } else if (selectedIndex > 0) {
-      newSelected = newSelected.concat(selected.slice(0, selectedIndex), selected.slice(selectedIndex + 1));
-    }
-    setSelected(newSelected);
   };
 
   const handleChangePage = (event, newPage) => {
@@ -157,9 +142,6 @@ export default function UserPage() {
           <Typography variant="h4" gutterBottom>
             User
           </Typography>
-          <Button variant="contained" startIcon={<Iconify icon="eva:plus-fill" />}>
-            New User
-          </Button>
         </Stack>
 
         <Card>
@@ -178,40 +160,51 @@ export default function UserPage() {
                   onSelectAllClick={handleSelectAllClick}
                 />
                 <TableBody>
-                  {filteredUsers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
-                    const { id, name, role, status, company, avatarUrl, isVerified } = row;
-                    const selectedUser = selected.indexOf(name) !== -1;
+                  {standings.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((standing) => {
+                    const {
+                      id,
+                      rank,
+                      all_played,
+                      all_win,
+                      all_draw,
+                      all_loose,
+                      all_goals_for,
+                      all_goals_against,
+                      goals_diff,
+                      points,
+                      soccer_teams.name,
+                      soccer_teams.logo
+                    } = standing;
+                    const selectedStanding = selected.indexOf(id) !== -1;
 
                     return (
-                      <TableRow hover key={id} tabIndex={-1} role="checkbox" selected={selectedUser}>
-                        <TableCell padding="checkbox">
-                          <Checkbox checked={selectedUser} onChange={(event) => handleClick(event, name)} />
-                        </TableCell>
-
+                      <TableRow hover key={id} tabIndex={-1} role="checkbox" selected={selectedStanding}>                        
                         <TableCell component="th" scope="row" padding="none">
                           <Stack direction="row" alignItems="center" spacing={2}>
-                            <Avatar alt={name} src={avatarUrl} />
+                            <img alt={team_name} src={team_logo_url} />
                             <Typography variant="subtitle2" noWrap>
-                              {name}
+                              {team_name}
                             </Typography>
                           </Stack>
                         </TableCell>
 
-                        <TableCell align="left">{company}</TableCell>
+                        <TableCell align="right">{rank}</TableCell>
 
-                        <TableCell align="left">{role}</TableCell>
+                        <TableCell align="right">{all_played}</TableCell>
 
-                        <TableCell align="left">{isVerified ? 'Yes' : 'No'}</TableCell>
+                        <TableCell align="right">{all_win}</TableCell>
 
-                        <TableCell align="left">
-                          <Label color={(status === 'banned' && 'error') || 'success'}>{sentenceCase(status)}</Label>
-                        </TableCell>
+                        <TableCell align="right">{all_draw}</TableCell>
 
-                        <TableCell align="right">
-                          <IconButton size="large" color="inherit" onClick={handleOpenMenu}>
-                            <Iconify icon={'eva:more-vertical-fill'} />
-                          </IconButton>
-                        </TableCell>
+                        <TableCell align="right">{all_loose}</TableCell>
+
+                        <TableCell align="right">{all_goals_for}</TableCell>
+
+                        <TableCell align="right">{all_goals_against}</TableCell>
+
+                        <TableCell align="right">{goals_diff}</TableCell>
+
+                        <TableCell align="right">{points}</TableCell>
                       </TableRow>
                     );
                   })}
@@ -260,35 +253,6 @@ export default function UserPage() {
           />
         </Card>
       </Container>
-
-      <Popover
-        open={Boolean(open)}
-        anchorEl={open}
-        onClose={handleCloseMenu}
-        anchorOrigin={{ vertical: 'top', horizontal: 'left' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-        PaperProps={{
-          sx: {
-            p: 1,
-            width: 140,
-            '& .MuiMenuItem-root': {
-              px: 1,
-              typography: 'body2',
-              borderRadius: 0.75,
-            },
-          },
-        }}
-      >
-        <MenuItem>
-          <Iconify icon={'eva:edit-fill'} sx={{ mr: 2 }} />
-          Edit
-        </MenuItem>
-
-        <MenuItem sx={{ color: 'error.main' }}>
-          <Iconify icon={'eva:trash-2-outline'} sx={{ mr: 2 }} />
-          Delete
-        </MenuItem>
-      </Popover>
     </>
   );
 }

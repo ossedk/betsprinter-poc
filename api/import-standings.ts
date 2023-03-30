@@ -14,19 +14,13 @@ export default async function handler(event: any, context: any): Promise<Handler
   const apiKey = event.headers['x-api-key'];
   const host = event.headers.host;
 
-  // If the request is not coming from the server, return a 403 error
-  if (!host.startsWith('localhost') && !host.endsWith('vercel.app')) {
-    return {
-      statusCode: 403,
-      body: JSON.stringify({ message: 'Forbidden: Access denied' }),
-    };
-  }
-
-  if (apiKey !== process.env.API_KEY) {
-    return {
-      statusCode: 403,
-      body: JSON.stringify({ message: 'Forbidden: Invalid API key' }),
-    };
+  if(process.env.ENV !== 'local'){
+    if (apiKey !== process.env.API_KEY) {
+      return {
+        statusCode: 403,
+        body: JSON.stringify({ message: 'Forbidden: Invalid API key' }),
+      };
+    } 
   }
 
   const options = {
